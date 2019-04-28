@@ -1,0 +1,25 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  # Only for the client project. You can extend if you want
+  - docker build -t fabianoyoschitaki/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  # These need to exit with exit code 0 otherwise error. -- --coverage it does not stay forever
+  - docker run fabianoyoschitaki/react-test npm test -- --coverage
+
+after_success:
+  # No need to specify Dockerfile because it's the default one (production)
+  - docker build -t fabianoyoschitaki/multi-client ./client
+  - docker build -t fabianoyoschitaki/multi-nginx ./nginx
+  - docker build -t fabianoyoschitaki/multi-server ./server
+  - docker build -t fabianoyoschitaki/multi-worker ./worker
+  # Log in to the Docker CLI. Password will be on Travis
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub. Remember docker login command to push to Docker Hub, let's do the same here
+  - docker push fabianoyoschitaki/multi-client
+  - docker push fabianoyoschitaki/multi-nginx
+  - docker push fabianoyoschitaki/multi-server
+  - docker push fabianoyoschitaki/multi-worker
